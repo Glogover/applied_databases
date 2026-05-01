@@ -1,5 +1,6 @@
 # main.py
 # Description: TBD
+
 # Author: Marcin Kaminski
 
 import mysql.connector # Importing the mysql.connector module to establish a connection to the MySQL database
@@ -9,6 +10,9 @@ from neo4j import GraphDatabase # Importing the GraphDatabase class from the neo
 import tkinter as tk # Importing the tkinter module to create a graphical user interface (GUI) for the application
 from tkinter import ttk, messagebox, filedialog # Importing specific classes and functions from the tkinter module to create and manage GUI components such as treeview, message boxes, and file dialogs
 import csv # Importing the csv module to read and write CSV files for data import/export functionality
+import networkx as nx # Importing the networkx module to create and manipulate complex networks/graphs, which can be used for visualizing connections between attendees or sessions in the conference
+import matplotlib.pyplot as plt # Importing the pyplot module from matplotlib to create visualizations
+
 
 
 # DATABASE CONNECTIONS
@@ -53,10 +57,28 @@ def view_rooms():
 
 # EXIT APPLICATION
 
-def close_application():
+def close_application(): # Defining a function to close the database connections and the main application window when the user chooses to exit the application
     if messagebox.askokcancel("Exit", "Are you sure you want to exit?"): # Displaying a confirmation dialog box when the user attempts to close the application, asking if they are sure they want to exit
+        try:
+           db.close() # Attempting to close the MySQL database connection
+           driver.close() # Attempting to close the Neo4j database connection
+        except Exception: # Catching any exceptions that occur during the closing of the database connections and ignoring them (e.g., if the connections are already closed or if there is an error during closing)
+           pass # Ignoring any exceptions that occur during the closing of the database connections
+        
         root.destroy() # If the user confirms, the main application window is destroyed, effectively closing the application
 
+
+
+# CLOSE CONNECTIONS
+
+def close_application(): # Defining a function to close the database connections and the main application window when the user chooses to exit the application
+    try:
+        db.close()
+        driver.close()
+    except Exception:
+        pass
+
+    root.destroy()
 
 
 # MAIN GUI
