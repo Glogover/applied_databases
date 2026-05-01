@@ -48,30 +48,36 @@ driver = GraphDatabase.driver(
 def speakers_sessions():
     print("Not implemented yet")
 
+
 # OPTION 2: View Attendees by Company
 
 def attendees_by_company():
     print("Not implemented yet")
+
 
 # OPTION 3: Add New Attendee
 
 def add_attendee():
     print("Not implemented yet")
 
+
 # OPTION 4: View Connected Attendees
 
 def connected_attendees():
     print("Not implemented yet")
+
 
 # OPTION 5: Add Attendee Connection
 
 def add_connection():
     print("Not implemented yet")
 
+
 # OPTION 6: View Rooms
 
 def view_rooms():
     print("Not implemented yet")
+
 
 # ---EXIT APPLICATION---
 
