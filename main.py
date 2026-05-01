@@ -20,6 +20,45 @@ driver = GraphDatabase.driver(
     auth=(cfg.NEO4J_USER, cfg.NEO4J_PASSWORD)
 ) # Creating a driver instance to connect to the Neo4j database using the URI and authentication credentials from dbconfig.py
 
+
+# OPTION 1: View Speakers & Sessions
+
+def speakers_sessions():
+    print("Not implemented yet")
+
+# OPTION 2: View Attendees by Company
+
+def attendees_by_company():
+    print("Not implemented yet")
+
+# OPTION 3: Add New Attendee
+
+def add_attendee():
+    print("Not implemented yet")
+
+# OPTION 4: View Connected Attendees
+
+def connected_attendees():
+    print("Not implemented yet")
+
+# OPTION 5: Add Attendee Connection
+
+def add_connection():
+    print("Not implemented yet")
+
+# OPTION 6: View Rooms
+
+def view_rooms():
+    print("Not implemented yet")
+
+# EXIT APPLICATION
+
+def close_application():
+    if messagebox.askokcancel("Exit", "Are you sure you want to exit?"): # Displaying a confirmation dialog box when the user attempts to close the application, asking if they are sure they want to exit
+        root.destroy() # If the user confirms, the main application window is destroyed, effectively closing the application
+
+
+
 # MAIN GUI
 
 root = tk.Tk() # Creating the main application window using Tkinter
