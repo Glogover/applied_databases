@@ -3,19 +3,35 @@
 
 # Author: Marcin Kaminski
 
+# ---IMPORTS---
+
 import mysql.connector # Importing the mysql.connector module to establish a connection to the MySQL database
+# Sourced from: https://www.w3schools.com/python/python_mysql_getstarted.asp
+
 import dbconfig as cfg # Importing the dbconfig module to access the database configuration parameters defined in dbconfig.py
+
 from neo4j import GraphDatabase # Importing the GraphDatabase class from the neo4j module to establish a connection to the Neo4j database
+# Sourced from: https://neo4j.com/docs/python-manual/current/
 
 import tkinter as tk # Importing the tkinter module to create a graphical user interface (GUI) for the application
+# Sourced from: https://docs.python.org/3/library/tkinter.html
+
 from tkinter import ttk, messagebox, filedialog # Importing specific classes and functions from the tkinter module to create and manage GUI components such as treeview, message boxes, and file dialogs
+# Sourced from: https://docs.python.org/3/library/tkinter.ttk.html
+# Sourced from: https://docs.python.org/3/library/tkinter.messagebox.html
+
 import csv # Importing the csv module to read and write CSV files for data import/export functionality
+# Sourced from: https://docs.python.org/3/library/csv.html
+
 import networkx as nx # Importing the networkx module to create and manipulate complex networks/graphs, which can be used for visualizing connections between attendees or sessions in the conference
+# Sourced from: https://networkx.org/documentation/stable/index.html
+
 import matplotlib.pyplot as plt # Importing the pyplot module from matplotlib to create visualizations
+# Sourced from: https://www.w3schools.com/python/matplotlib_pyplot.asp
 
 
 
-# DATABASE CONNECTIONS
+# ---DATABASE CONNECTIONS---
 
 db = mysql.connector.connect(**cfg.mysql) # Unpacking the mysql dictionary from dbconfig.py to create a connection
 
@@ -24,6 +40,8 @@ driver = GraphDatabase.driver(
     auth=(cfg.NEO4J_USER, cfg.NEO4J_PASSWORD)
 ) # Creating a driver instance to connect to the Neo4j database using the URI and authentication credentials from dbconfig.py
 
+
+# ---OPTIONS---
 
 # OPTION 1: View Speakers & Sessions
 
@@ -55,7 +73,7 @@ def add_connection():
 def view_rooms():
     print("Not implemented yet")
 
-# EXIT APPLICATION
+# ---EXIT APPLICATION---
 
 def close_application(): # Defining a function to close the database connections and the main application window when the user chooses to exit the application
     if messagebox.askokcancel("Exit", "Are you sure you want to exit?"): # Displaying a confirmation dialog box when the user attempts to close the application, asking if they are sure they want to exit
@@ -69,19 +87,7 @@ def close_application(): # Defining a function to close the database connections
 
 
 
-# CLOSE CONNECTIONS
-
-def close_application(): # Defining a function to close the database connections and the main application window when the user chooses to exit the application
-    try:
-        db.close()
-        driver.close()
-    except Exception:
-        pass
-
-    root.destroy()
-
-
-# MAIN GUI
+# ---MAIN GUI---
 
 root = tk.Tk() # Creating the main application window using Tkinter
 root.title("Conference Manager") # Setting the title of the main application window to "Conference Manager"
@@ -155,5 +161,11 @@ root.mainloop() # Starting the main event loop of the application, which waits f
 
 
 
-#if __name__ == "__main__": # Checking if the script is being run directly (as the main program) rather than imported as a module
-    #print("To be continued...")
+if __name__ == "__main__": # Checking if the script is being run directly (as the main program) rather than imported as a module
+   #print("To be continued...")
+   speakers_sessions() # Calling the speakers_sessions function to execute the logic for viewing speakers and sessions (to be defined later)
+   #attendees_by_company() # Calling the attendees_by_company function to execute the logic for viewing attendees by company (to be defined later)
+   #add_attendee() # Calling the add_attendee function to execute the logic for adding a new attendee (to be defined later)
+   #connected_attendees() # Calling the connected_attendees function to execute the logic for viewing connected attendees (to be defined later)
+   #add_connection() # Calling the add_connection function to execute the logic for adding a connection between attendees (to be defined later)
+   #view_rooms() # Calling the view_rooms function to execute the logic for viewing rooms (to be defined later)
