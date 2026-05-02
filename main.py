@@ -169,9 +169,9 @@ def attendees_by_company(): # Defining a function to allow the user to view atte
         query = """
         SELECT a.attendeeName, a.attendeeDOB, s.sessionTitle, s.speakerName, s.sessionDate,r.roomName
         FROM attendee a
-        JOIN registration reg ON a.attendeeID = reg.attendeeID
-        JOIN session s ON reg.sessionID = s.sessionID
-        JOIN room r ON s.roomID = r.roomID
+        LEFT JOIN registration reg ON a.attendeeID = reg.attendeeID
+        LEFT JOIN session s ON reg.sessionID = s.sessionID
+        LEFT JOIN room r ON s.roomID = r.roomID
         WHERE a.attendeeCompanyID = %s
         ORDER BY a.attendeeName
         """
@@ -193,8 +193,80 @@ def attendees_by_company(): # Defining a function to allow the user to view atte
 
 # OPTION 3: Add New Attendee
 
-def add_attendee():
-    print("Not implemented yet")
+def add_attendee(): # Defining a function to allow the user to add a new attendee to the conference by entering their details in a form, validating the input, and inserting the new attendee into the database
+    win = tk.Toplevel(root) # Creating a new top-level window (a child window of the main application window) to display the form for adding a new attendee
+    win.title("Add New Attendee") # Setting the title of the new window to "Add New Attendee" to indicate the purpose of the window to the user
+    win.geometry("400x350") # Setting the size of the new window to 400 pixels in width and 350 pixels in height, providing enough space for the form fields and the submit button while keeping it compact
+
+    labels = [ # Defining a list of labels for the form fields to be displayed in the new window, which includes "Attendee ID", "Name", "DOB (YYYY-MM-DD)", "Gender (Male/Female)", and "Company ID" to guide the user in entering the required information for the new attendee    
+        "Attendee ID", 
+        "Name", 
+        "DOB (YYYY-MM-DD)", 
+        "Gender (Male/Female)",
+        "Company ID"
+    ]
+
+    entries = [] # Initializing an empty list to store the Entry widgets for each form field, which will be used later to retrieve the user input when the form is submitted
+
+    for label in labels:
+        tk.Label(win, text=label).pack() # Iterating over each label in the labels list to create a Label widget for each form field, setting the text of the label to the corresponding label from the list, and packing it into the new window to display it to the user
+        entry = tk.Entry(win, width=35) # Creating an Entry widget for each form field to allow the user to input the required information for the new attendee, with a width of 35 characters for better visibility and user experience
+        entry.pack(pady=3) # Packing the Entry widget into the new window with a vertical padding of 3 pixels to provide spacing between the form fields, and appending the Entry widget to the entries list for later retrieval of user input when the form is submitted
+        entries.append(entry) # Appending the created Entry widget to the entries list to keep track of all the Entry widgets for later use when retrieving user input for the new attendee details
+
+    def save_attendee(): # Defining a function to save the new attendee details entered by the user in the form, which includes validating the input, checking for existing company ID, and inserting the new attendee into the database if all validations pass
+        try: # Attempting to retrieve the user input from the Entry widgets, validate the input, check for existing company ID in the database, and insert the new attendee into the database using a try-except block to catch any exceptions that may occur during the process
+            attendee_id = entries[0].get()
+            attendee_name = entries[1].get()
+            attendee_dob = entries[2].get()
+            attendee_gender = entries[3].get()
+            company_id = entries[4].get()
+
+            if attendee_gender not in ["Male", "Female"]: # Validating the gender input to ensure it is either "Male" or "Female", by checking if the value entered by the user in the gender field is not in the list of valid options ["Male", "Female"]
+                messagebox.showerror("Error", "*** ERROR *** \nGender must be Male/Female") # Displaying an error message box to the user if the gender input is invalid (i.e., not "Male" or "Female").
+                return # Returning from the function if the gender input is invalid, preventing further execution of the save logic and avoiding errors when trying to insert invalid data into the database    
+
+            cursor = db.cursor() # Creating a cursor object from the MySQL database connection to execute SQL queries for validating the company ID and inserting the new attendee into the database
+
+            cursor.execute( # Executing a SQL query to check if the company with the specified company ID exists in the database, by selecting the company ID from the company table where the company ID matches the user input
+                "SELECT companyID FROM company WHERE companyID = %s", # Executing the SQL query to check for the existence of the company ID in the database, by selecting the companyID from the company table where the companyID matches the user input company_id
+                (company_id,) # Passing the company_id as a parameter in a tuple to the execute method to prevent SQL injection and ensure proper handling of the input when querying the database for the existence of the company ID
+            )
+
+            if not cursor.fetchone(): # Checking if the result of the executed query is None, which indicates that no matching company ID was found in the database for the specified company ID entered by the user
+                messagebox.showerror("Error", f"*** ERROR *** \nCompany ID: {company_id} does not exist") # Displaying an error message box to the user if the company ID does not exist in the database, with the title "Error" and a message that includes the invalid company ID and indicates that it does not exist
+
+            query = """
+            INSERT INTO attendee 
+            VALUES (%s, %s, %s, %s, %s)
+            """
+
+            cursor.execute( # Executing a SQL query to insert the new attendee details into the attendee table in the database, by using an INSERT INTO statement with placeholders for the values to be inserted, and passing in a tuple containing the user input for attendee ID, name, date of birth, gender, and company ID to the execute method to insert the new attendee into the database
+                query,
+                (
+                    attendee_id,
+                    attendee_name,
+                    attendee_dob,
+                    attendee_gender,
+                    company_id
+                )
+            )
+
+            db.commit() # Committing the transaction to the database to save the changes made by the INSERT statement, ensuring that the new attendee is added to the database and the changes are persisted
+            messagebox.showinfo("Success", "Attendee successfully added") # Displaying an information message box to the user indicating that the new attendee was successfully added to the database, with the title "Success" and the message "Attendee successfully added"
+
+            for entry in entries: # Iterating over each Entry widget in the entries list to clear the input fields after successfully adding the new attendee, by calling the delete method on each Entry widget to remove the text from the entry field and reset it for potential new input
+                entry.delete(0, tk.END) # Deleting the text from each Entry widget in the entries list by calling the delete method with parameters 0 and tk.END, which removes all text from the entry field, effectively clearing it for new input after successfully adding the attendee to the database
+
+        except mysql.connector.IntegrityError: # Catching a specific exception (IntegrityError) that may occur during the execution of the SQL query to insert the new attendee, which typically indicates a violation of database constraints such as a duplicate primary key (e.g., if the attendee ID already exists in the database)
+            messagebox.showerror("Error", f"*** ERROR *** \nAttendee ID: {entries[0].get()} already exists") # Displaying an error message box to the user if an IntegrityError occurs during the insertion of the new attendee, with the title "Error" and a message that includes the attendee ID entered by the user and indicates that it already exists in the database
+
+        except mysql.connector.Error as err: # Catching any other MySQL-related exceptions that may occur during the execution of the SQL queries for validating the company ID and inserting the new attendee, and storing the exception object in the variable err to display a more specific error message to the user
+            messagebox.showerror("Error", f"*** ERROR ***\n{str(err)}") # Displaying an error message box to the user if any MySQL-related exceptions occur during the process of validating the company ID or inserting the new attendee
+        #except ValueError as ve:
+            #messagebox.showerror("Error", f"*** ERROR ***\n{str(ve)}")
+
+    tk.Button(win, text="Add Attendee", command=save_attendee).pack(pady=15) # Creating a Button widget in the new window to allow the user to submit the form and add the new attendee, with the text "Add Attendee" and the command set to the save_attendee function defined earlier, and packing it into the window with a vertical padding of 15 pixels to provide spacing between the form fields and the button
 
 
 # OPTION 4: View Connected Attendees
