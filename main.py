@@ -138,8 +138,57 @@ def speakers_sessions(): # Defining a function to allow the user to view speaker
 
 # OPTION 2: View Attendees by Company
 
-def attendees_by_company():
-    print("Not implemented yet")
+def attendees_by_company(): # Defining a function to allow the user to view attendees grouped by their company affiliation, with a search functionality to filter attendees by company ID
+    win = tk.Toplevel(root) # Creating a new top-level window (a child window of the main application window) to display the attendees by company information
+    win.title("View Attendees by Company") # Setting the title of the new window to "View Attendees by Company" to indicate the purpose of the window to the user
+    win.geometry("350x150") # Setting the size of the new window to 350 pixels in width and 150 pixels in height, providing enough space for the search input and button while keeping it compact
+
+    tk.Label(win, text="Enter Company ID:").pack(pady=5) # Creating a Label widget in the new window to prompt the user to enter a company ID for searching, with the specified text and packing it into the window with a vertical padding of 5 pixels
+    entry = tk.Entry(win, width=30) # Creating an Entry widget in the new window to allow the user to input a company ID for searching, with a width of 30 characters for better visibility and user experience
+    entry.pack(pady=5) # Packing the Entry widget into the new window with a vertical padding of 5 pixels to provide spacing between the label and the entry field
+
+    def search(): # Defining a function to perform the search for attendees based on the company ID entered by the user, and to display the results in a table format
+        company_id = entry.get() # Retrieving the company ID entered by the user from the entry field using the get method and storing it in the variable company_id for further processing in the search logic
+
+        if not company_id.isdigit() or int(company_id) <= 0: # Validating the company ID entered by the user to ensure it is a positive integer, by checking if it consists of digits only and if its integer value is greater than 0
+            messagebox.showerror("Error", "Invalid company ID.\nPlease enter a valid company ID.") # Displaying an error message box to the user if the company ID is invalid (i.e., not a positive integer), with the title "Error" and the message "Invalid company ID"
+            return # Returning from the function if the company ID is invalid, preventing further execution of the search logic and avoiding errors when trying to query the database with an invalid company ID
+
+        cursor = db.cursor() # Creating a cursor object from the MySQL database connection to execute SQL queries and fetch results for the search based on the company ID entered by the user
+
+        cursor.execute( # Executing a SQL query to check if the company with the specified company ID exists in the database, by selecting the company name from the company table where the company ID matches the user input
+            "SELECT companyName FROM company WHERE companyID = %s",
+            (company_id,)
+        )
+        company = cursor.fetchone() # Fetching the result of the executed query using the cursor's fetchone method, which returns a single tuple containing the company name if a matching record is found, or None if no matching record exists in the database for the specified company ID
+
+        if not company: # Checking if the company variable is None, which indicates that no matching company was found in the database for the specified company ID
+            messagebox.showerror("Error", f"Company with ID {company_id} does not exist")
+            return # Displaying an error message box to the user if the company does not exist in the database, with the title "Error" and the message "Company does not exist", and returning from the function to prevent further execution of the search logic since there is no valid company to search for attendees
+
+        query = """
+        SELECT a.attendeeName, a.attendeeDOB, s.sessionTitle, s.speakerName, s.sessionDate,r.roomName
+        FROM attendee a
+        JOIN registration reg ON a.attendeeID = reg.attendeeID
+        JOIN session s ON reg.sessionID = s.sessionID
+        JOIN room r ON s.roomID = r.roomID
+        WHERE a.attendeeCompanyID = %s
+        ORDER BY a.attendeeName
+        """
+
+        cursor.execute(query, (company_id,)) # Executing the SQL query to retrieve the attendees associated with the specified company ID, along with their date of birth, session title, speaker name, and room name, by joining the attendee, registration, session, and room tables based on their relationships and filtering by the attendeeCompanyID matching the user input company ID
+        results = cursor.fetchall() # Fetching all the results of the executed query using the cursor's fetchall method, which returns a list of tuples containing the attendee name, date of birth, session title, speaker name, and room name for each attendee associated with the specified company ID
+
+        if not results: # Checking if there are no results returned from the query (i.e., if the results list is empty), which indicates that the company exists but has no attendees registered for any sessions
+            messagebox.showinfo("No Results", f"{company[0]} Attendees.\n" f"No attendees found for {company[0]}.") # Displaying an information message box to the user if no attendees are found for the specified company, with the title "No Results" and a message that includes the company name and indicates that no attendees were found for that company
+        else: # If there are results returned from the query, calling the show_table function defined earlier to display the results in a new window with a table format, passing in the column names ["Attendee", "DOB", "Session", "Speaker", "Date", "Room"], the results data, and a title that includes the company name for better context (e.g., "Attendees from: TechCorp")
+            show_table(
+                ["Attendee", "DOB", "Session", "Speaker", "Date", "Room"],
+                results,
+                f"{company[0]} Attendees" # Setting the title of the new window to include the company name retrieved from the database for better context (e.g., "TechCorp Attendees")
+            )
+
+    tk.Button(win, text="Search", command=search).pack(pady=10) # Creating a Button widget in the new window to allow the user to perform the search for attendees by company, with the text "Search" and the command set to the search function defined earlier, and packing it into the window with a vertical padding of 10 pixels to provide spacing between the entry field and the button
 
 
 # OPTION 3: Add New Attendee
