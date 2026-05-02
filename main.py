@@ -41,6 +41,62 @@ driver = GraphDatabase.driver(
 ) # Creating a driver instance to connect to the Neo4j database using the URI and authentication credentials from dbconfig.py
 
 
+
+# ---TABLE DISPLAY AND CSV EXPORT---
+
+def show_table(columns, data, title="Results"): # Defining a function to display a table of data in a new window with the specified columns, data, and title
+    win = tk.Toplevel(root) # Creating a new top-level window (a child window of the main application window) to display the table of data
+    win.title(title) # Setting the title of the new window to the specified title parameter (default is "Results")
+    win.geometry("900x400") # Setting the size of the new window to 900 pixels in width and 400 pixels in height
+
+    frame = tk.Frame(win) # Creating a Frame widget to hold the Treeview and Scrollbar components within the new window
+    frame.pack(fill="both", expand=True) # Packing the frame into the new window, allowing it to fill the available space and expand as needed
+
+    tree = ttk.Treeview(frame, columns=columns, show="headings") # Creating a Treeview widget to display the data in a tabular format, with the specified columns and showing only the headings (no tree structure)
+
+    for col in columns: # Iterating over each column name in the columns parameter to set up the Treeview headings and column widths
+        tree.heading(col, text=col) # Setting the heading of each column in the Treeview to the corresponding column name from the columns parameter
+        tree.column(col, width=160) # Setting the width of each column in the Treeview to 160 pixels for better visibility
+
+    for row in data: # Iterating over each row of data in the data parameter to insert it into the Treeview
+        tree.insert("", tk.END, values=row) # Inserting each row of data into the Treeview, with an empty string as the parent (indicating top-level items) and tk.END to append the row at the end of the Treeview
+
+    tree.pack(side="left", fill="both", expand=True) # Packing the Treeview into the frame, allowing it to fill the available space and expand as needed, and aligning it to the left side of the frame
+
+    scrollbar = ttk.Scrollbar(frame, orient="vertical", command=tree.yview) # Creating a vertical Scrollbar widget and linking it to the Treeview's yview method to allow scrolling through the data when there are more rows than can fit in the visible area of the Treeview
+    tree.configure(yscroll=scrollbar.set) # Configuring the Treeview to use the scrollbar for vertical scrolling by setting its yscroll command to the scrollbar's set method
+    scrollbar.pack(side="right", fill="y") # Packing the scrollbar into the frame, aligning it to the right side and allowing it to fill the vertical space of the frame
+
+    def export_csv(): # Defining a function to export the displayed data to a CSV file when the user clicks the "Export to CSV" button
+        if not data: # Checking if there is no data to export (i.e., if the data list is empty)
+            messagebox.showerror("Error", "No data to export") # Displaying an error message box to the user if there is no data to export, with the title "Error" and the message "No data to export"
+            return # Returning from the function if there is no data to export, preventing further execution of the export logic
+
+        file_path = filedialog.asksaveasfilename( # Opening a file dialog to allow the user to choose the location and name for the CSV file to be saved, with the following parameters:
+            defaultextension=".csv", # Setting the default file extension to ".csv" to ensure that the saved file is recognized as a CSV file
+            initialfile=title.replace(" ", "_") + ".csv", # Setting the initial file name in the save dialog to the title of the table with spaces replaced by underscores, followed by the ".csv" extension (e.g., "Results.csv")
+            filetypes=[("CSV files", "*.csv")], # Restricting the file types that can be selected in the save dialog to only CSV files, with the description "CSV files" and the file extension filter "*.csv"
+            title="Save CSV File" # Setting the title of the file dialog to "Save CSV File" to indicate to the user that they are saving a CSV file
+        )
+
+        if not file_path: # Checking if the user did not select a file path (i.e., if the file_path variable is empty or None)
+            return # Returning from the function if the user did not select a file path, preventing further execution of the export logic and avoiding errors when trying to write to an invalid file path
+
+        try: # Attempting to write the data to the specified CSV file path using a try-except block to catch any exceptions that may occur during the file writing process
+            with open(file_path, mode="w", newline="", encoding="utf-8") as file: # Opening the specified file path in write mode ("w"), with newline set to an empty string to prevent extra blank lines in the CSV file, and encoding set to "utf-8" to support a wide range of characters
+                writer = csv.writer(file) # Creating a CSV writer object to write data to the opened file
+                writer.writerow(columns) # Writing the column headers to the CSV file as the first row using the writerow method of the CSV writer object, passing in the columns list as the argument
+                writer.writerows(data) # Writing the data rows to the CSV file using the writerows method of the CSV writer object, passing in the data list (which contains the rows of data) as the argument
+
+            messagebox.showinfo("Success", "Data exported successfully") # Displaying an information message box to the user indicating that the data was exported successfully, with the title "Success" and the message "Data exported successfully"
+
+        except Exception as e: # Catching any exceptions that occur during the file writing process and storing the exception object in the variable e
+            messagebox.showerror("Error", str(e)) # Displaying an error message box to the user if an exception occurs during the file writing process, with the title "Error" and the message containing the string representation of the exception (e.g., the error message)
+
+    tk.Button(win, text="Export to CSV", command=export_csv).pack(pady=8) # Creating a Button widget in the new window to allow the user to export the displayed data to a CSV file, with the text "Export to CSV" and the command set to the export_csv function defined earlier, and packing it into the window with a vertical padding of 8 pixels
+
+
+
 # ---OPTIONS---
 
 # OPTION 1: View Speakers & Sessions
@@ -167,9 +223,9 @@ root.mainloop() # Starting the main event loop of the application, which waits f
 
 
 
-if __name__ == "__main__": # Checking if the script is being run directly (as the main program) rather than imported as a module
+#if __name__ == "__main__": # Checking if the script is being run directly (as the main program) rather than imported as a module
    #print("To be continued...")
-   speakers_sessions() # Calling the speakers_sessions function to execute the logic for viewing speakers and sessions (to be defined later)
+   #speakers_sessions() # Calling the speakers_sessions function to execute the logic for viewing speakers and sessions (to be defined later)
    #attendees_by_company() # Calling the attendees_by_company function to execute the logic for viewing attendees by company (to be defined later)
    #add_attendee() # Calling the add_attendee function to execute the logic for adding a new attendee (to be defined later)
    #connected_attendees() # Calling the connected_attendees function to execute the logic for viewing connected attendees (to be defined later)
