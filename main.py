@@ -101,8 +101,39 @@ def show_table(columns, data, title="Results"): # Defining a function to display
 
 # OPTION 1: View Speakers & Sessions
 
-def speakers_sessions():
-    print("Not implemented yet")
+def speakers_sessions(): # Defining a function to allow the user to view speakers and their associated sessions, with a search functionality to filter speakers by name
+    win = tk.Toplevel(root) # Creating a new top-level window (a child window of the main application window) to display the speakers and sessions information
+    win.title("View Speakers & Sessions") # Setting the title of the new window to "View Speakers & Sessions" to indicate the purpose of the window to the user
+    win.geometry("350x150") # Setting the size of the new window to 350 pixels in width and 150 pixels in height, providing enough space for the search input and button while keeping it compact
+
+    tk.Label(win, text="Enter speaker name: ").pack(pady=5) # Creating a Label widget in the new window to prompt the user to enter a speaker name or part of a name for searching, with the specified text and packing it into the window with a vertical padding of 5 pixels
+    entry = tk.Entry(win, width=30) # Creating an Entry widget in the new window to allow the user to input a speaker name or part of a name for searching, with a width of 30 characters for better visibility and user experience
+    entry.pack(pady=5) # Packing the Entry widget into the new window with a vertical padding of 5 pixels to provide spacing between the label and the entry field
+
+    def search(): # Defining a function to perform the search for speakers and their associated sessions based on the user's input in the entry field, and to display the results in a table format
+        cursor = db.cursor() # Creating a cursor object from the MySQL database connection to execute SQL queries and fetch results
+
+        query = """
+        SELECT s.speakerName, s.sessionTitle, r.roomName
+        FROM session s
+        JOIN room r ON s.roomID = r.roomID
+        WHERE s.speakerName LIKE %s
+        ORDER BY s.speakerName
+        """
+
+        cursor.execute(query, ("%" + entry.get() + "%",)) # Executing the SQL query using the cursor's execute method, passing in the query string and a tuple containing the search parameter (the user's input from the entry field, wrapped with wildcard characters "%" for partial matching) to filter speakers by name
+        results = cursor.fetchall() # Fetching all the results of the executed query using the cursor's fetchall method, which returns a list of tuples containing the speaker name, session title, and room name for each matching record
+
+        if not results: # Checking if there are no results returned from the query (i.e., if the results list is empty)
+            messagebox.showinfo("No Results", "No speakers found of that name.") # Displaying an information message box to the user if no speakers are found matching the search criteria, with the title "No Results" and the message "No speakers found of that name."
+        else: # If there are results returned from the query, calling the show_table function defined earlier to display the results in a new window with a table format, passing in the column names ["Speaker", "Session", "Room"], the results data, and the title "Speakers and Sessions" for the new window
+            show_table(
+                ["Speaker", "Session", "Room"],
+                results,
+                f"Session Details For {entry.get()}" # Setting the title of the new window to include the search term entered by the user for better context (e.g., "Session Details For: John")
+            )
+
+    tk.Button(win, text="Search", command=search).pack(pady=10) # Creating a Button widget in the new window to allow the user to perform the search for speakers and sessions, with the text "Search" and the command set to the search function defined earlier, and packing it into the window with a vertical padding of 10 pixels to provide spacing between the entry field and the button
 
 
 # OPTION 2: View Attendees by Company
