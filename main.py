@@ -533,8 +533,23 @@ def add_connection(): # Defining a function to allow the user to add a connectio
 
 # OPTION 6: View Rooms
 
-def view_rooms():
-    print("Not implemented yet")
+rooms_cache = None # Initializing a variable rooms_cache to None, which will be used to store the cached results of the rooms data retrieved from the database, allowing for faster access to the rooms information when the user chooses to view rooms multiple times without needing to query the database again, improving performance and user experience when viewing rooms in the application
+
+def view_rooms(): # Defining a function to allow the user to view the rooms available for the conference sessions, which includes caching the results of the rooms data retrieved from the database to improve performance when viewing rooms multiple times
+    global rooms_cache # Declaring the rooms_cache variable as global to allow modification of its value within the view_rooms function, enabling the caching mechanism for the rooms data retrieved from the database when the user chooses to view rooms in the application
+
+    if rooms_cache is None: # Checking if the rooms_cache variable is None, which indicates that the rooms data has not been cached yet, and therefore a query to the database is needed to retrieve the rooms information for the first time when the user chooses to view rooms in the application
+        cursor = db.cursor() # Creating a cursor object from the MySQL database connection to execute SQL queries for retrieving the rooms information from the database when the user chooses to view rooms in the application
+        cursor.execute( # Executing a SQL query to retrieve the room ID, room name, and capacity of all rooms from the database, by selecting the roomID, roomName, and capacity from the room table to get the necessary information about the rooms available for the conference sessions when the user chooses to view rooms in the application
+            "SELECT roomID, roomName, capacity FROM room"
+        )
+        rooms_cache = cursor.fetchall() # Fetching all the results of the executed query using the cursor's fetchall method, which returns a list of tuples containing the room ID, room name, and capacity for each room retrieved from the database, and storing this list in the rooms_cache variable for caching purposes to allow for faster access to the rooms information when the user chooses to view rooms multiple times without needing to query the database again, improving performance and user experience when viewing rooms in the application
+
+    show_table( # Calling the show_table function defined earlier to display the rooms information in a new window with a table format, passing in the column names for the rooms data, the cached rooms data from the database, and a title for the table to provide context to the user when viewing the rooms information in the application
+        ["Room ID", "Room Name", "Capacity"],
+        rooms_cache,
+        "Rooms"
+    )
 
 
 # ---EXIT APPLICATION---
