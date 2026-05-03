@@ -318,7 +318,7 @@ def connected_attendees(): # Defining a function to allow the user to view atten
 
         connected_data = [] # Initializing an empty list to store the connected attendees' data, which will be populated with tuples containing the connected attendee ID and name for each connected attendee found in the Neo4j database based on the specified attendee ID entered by the user in the search function for connected attendees
 
-        with driver.session(database="appdbprojNeo4j") as session: # Creating a session with the Neo4j database using the driver instance, and specifying the database name "appdbprojNeo4j" to execute queries for finding connected attendees based on the specified attendee ID entered by the user in the search function for connected attendees
+        with driver.session(database=cfg.NEO4J_DATABASE) as session: # Creating a session with the Neo4j database using the driver instance, and specifying the database name "appdbprojneo4j" to execute queries for finding connected attendees based on the specified attendee ID entered by the user in the search function for connected attendees
             query = """ 
             MATCH (a:Attendee {AttendeeID: $id})-[r:CONNECTED_TO]-(b:Attendee)
             RETURN b.AttendeeID AS connectedID
@@ -381,11 +381,11 @@ def visualize_connections(attendee_id): # Defining a function to visualize the c
     attendee_name = attendee[0] # Storing the attendee name retrieved from the database in the variable attendee_name for use in the graph visualization, by accessing the first element of the attendee tuple (which is the attendee name) and assigning it to the variable attendee_name for later use in labeling the graph nodes and providing context in the visualization of connected attendees
 
     graph = nx.Graph() # Creating an empty graph object using NetworkX to represent the connections between attendees, which will be populated with nodes and edges based on the connected attendees retrieved from the Neo4j database for the specified attendee ID entered by the user in the visualization function for connected attendees
-    graph.add_node(attendee_name) # Adding a node to the graph for the specified attendee, using the attendee name retrieved from the database as the label for the node, which will serve as the central node in the graph visualization of connected attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
+    graph.add_node(attendee_id) # Adding a node to the graph for the specified attendee, using the attendee name retrieved from the database as the label for the node, which will serve as the central node in the graph visualization of connected attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
 
     found_connection = False # Initializing a boolean variable found_connection to False, which will be used to track whether any connected attendees are found in the Neo4j database for the specified attendee ID entered by the user in the visualization function for connected attendees, and will be updated to True if at least one connected attendee is found during the processing of the Neo4j query results
 
-    with driver.session(database="appdbprojNeo4j") as session: # Creating a session with the Neo4j database using the driver instance, and specifying the database name "appdbprojNeo4j" to execute queries for finding connected attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
+    with driver.session(database=cfg.NEO4J_DATABASE) as session: # Creating a session with the Neo4j database using the driver instance, and specifying the database name "appdbprojneo4j" to execute queries for finding connected attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
         query = """
         MATCH (a:Attendee {AttendeeID: $id})-[r:CONNECTED_TO]-(b:Attendee)
         RETURN b.AttendeeID AS connectedID
@@ -406,8 +406,8 @@ def visualize_connections(attendee_id): # Defining a function to visualize the c
 
             if connected_attendee: # Checking if the connected_attendee variable is not None, which indicates that a matching record was found in the database for the specified connected attendee ID retrieved from the Neo4j query results
                 connected_name = connected_attendee[0] # Storing the connected attendee name retrieved from the database in the variable connected_name for use in the graph visualization, by accessing the first element of the connected_attendee tuple (which is the connected attendee name) and assigning it to the variable connected_name for later use in labeling the graph nodes and providing context in the visualization of connected attendees
-                graph.add_node(connected_name) # Adding a node to the graph for the connected attendee, using the connected attendee name retrieved from the database as the label for the node, which will be connected to the central node representing the specified attendee in the graph visualization of connected attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
-                graph.add_edge(attendee_name, connected_name) # Adding an edge to the graph between the central node representing the specified attendee and the node representing the connected attendee, using the attendee name and connected attendee name as the labels for the nodes, which will visually represent the connection between the specified attendee and the connected attendees in the graph visualization based on the specified attendee ID entered by the user in the visualization function for connected attendees
+                graph.add_node(connected_id) # Adding a node to the graph for the connected attendee, using the connected attendee name retrieved from the database as the label for the node, which will be connected to the central node representing the specified attendee in the graph visualization of connected attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
+                graph.add_edge(attendee_id, connected_id) # Adding an edge to the graph between the central node representing the specified attendee and the node representing the connected attendee, using the attendee ID and connected attendee ID as the labels for the nodes, which will visually represent the connection between the specified attendee and the connected attendees in the graph visualization based on the specified attendee ID entered by the user in the visualization function for connected attendees
 
     if not found_connection: # Checking if the found_connection variable is still False after processing the Neo4j query results, which indicates that no connected attendees were found in the Neo4j database for the specified attendee ID entered by the user, and therefore there are no connections to visualize in the graph
         messagebox.showinfo("No Connections", f"Attendee Name:{attendee_name}\nNo connections") # Displaying an information message box to the user if no connected attendees are found for the specified attendee ID, with the title "No Connections" and a message that includes the attendee name retrieved from the database and indicates that there are no connections for that attendee, and returning from the function to prevent further execution of the graph visualization logic since there are no connections to visualize
@@ -420,11 +420,24 @@ def visualize_connections(attendee_id): # Defining a function to visualize the c
         graph,
         position,
         with_labels=True,
+        labels={node: node for node in graph.nodes()},
         node_size=3000,
-        node_color="lightblue",
+        node_color="mediumseagreen",
         edge_color="gray",
         font_size=10,
         font_weight="bold"
+    )
+
+    edge_labels = {
+        edge: "CONNECTED_TO" 
+        for edge in graph.edges()
+    }
+
+    nx.draw_networkx_edge_labels(
+        graph, 
+        position, 
+        edge_labels=edge_labels,
+        font_size=9
     )
 
     plt.title(f"Neo4j Connections for {attendee_name}") # Setting the title of the graph visualization to include the name of the attendee for whom connections are being displayed
@@ -434,8 +447,88 @@ def visualize_connections(attendee_id): # Defining a function to visualize the c
 
 # OPTION 5: Add Attendee Connection
 
-def add_connection():
-    print("Not implemented yet")
+def add_connection(): # Defining a function to allow the user to add a connection between two attendees
+    win = tk.Toplevel(root) # Creating a new top-level window (a child window of the main application window) to display the form for adding a connection between two attendees
+    win.title("Add Attendee Connection") # Setting the title of the new window to "Add Attendee Connection" to indicate the purpose of the window to the user
+    win.geometry("350x220") # Setting the size of the new window to 350 pixels in width and 220 pixels in height, providing enough space for the input fields and buttons while keeping it compact and visually appealing for the user when adding a connection between two attendees
+
+    tk.Label(win, text="Enter Attendee 1 ID:").pack(pady=5) # Creating a Label widget in the new window to prompt the user to enter the first attendee ID for adding a connection, with the specified text and packing it into the window with a vertical padding of 5 pixels to provide spacing between the label and the entry field
+    entry_one = tk.Entry(win, width=30) # Creating an Entry widget in the new window to allow the user to input the first attendee ID for adding a connection, with a width of 30 characters for better visibility and user experience when entering the attendee ID for the connection
+    entry_one.pack(pady=5) # Packing the Entry widget for the first attendee ID into the new window with a vertical padding of 5 pixels to provide spacing between the label and the entry field for the first attendee ID when adding a connection between two attendees
+
+    tk.Label(win, text="Enter Attendee 2 ID:").pack(pady=5) # Creating a Label widget in the new window to prompt the user to enter the second attendee ID for adding a connection, with the specified text and packing it into the window with a vertical padding of 5 pixels to provide spacing between the label and the entry field for the second attendee ID when adding a connection between two attendees
+    entry_two = tk.Entry(win, width=30) # Creating an Entry widget in the new window to allow the user to input the second attendee ID for adding a connection, with a width of 30 characters for better visibility and user experience when entering the attendee ID for the connection
+    entry_two.pack(pady=5) # Packing the Entry widget for the second attendee ID into the new window with a vertical padding of 5 pixels to provide spacing between the label and the entry field for the second attendee ID when adding a connection between two attendees
+
+    def save_connection(): # Defining a function to save the connection between the two attendees based on the IDs entered by the user, which includes validating the input, checking for the existence of the attendees in the database, checking for existing connections in the Neo4j database, and then creating a new connection if all validations pass
+        attendee_one = entry_one.get() # Retrieving the first attendee ID entered by the user from the entry field using the get method and storing it in the variable attendee_one for further processing in the save logic to add a connection between two attendees based on the IDs entered by the user
+        attendee_two = entry_two.get() # Retrieving the second attendee ID entered by the user from the entry field using the get method and storing it in the variable attendee_two for further processing in the save logic to add a connection between two attendees based on the IDs entered by the user
+
+        if not attendee_one.isdigit() or not attendee_two.isdigit(): # Validating the attendee ID inputs to ensure they are valid integers, by checking if the values entered by the user in both attendee ID fields consist of digits only (i.e., are positive integers)
+            messagebox.showerror("Error", "*** ERROR ***\nAttendee IDs must be numbers") # Displaying an error message box to the user if either of the attendee ID inputs is invalid (i.e., not a valid integer), with the title "Error" and the message "Invalid attendee ID"
+            return # Returning from the function if either of the attendee ID inputs is invalid, preventing further execution of the save logic and avoiding errors when trying to query the database with invalid attendee IDs for adding a connection between two attendees
+
+        attendee_one = int(attendee_one) # Converting the validated first attendee ID input from a string to an integer using the int function, and storing the converted value back in the variable attendee_one for use in subsequent database queries to add a connection between two attendees based on the IDs entered by the user
+        attendee_two = int(attendee_two) # Converting the validated second attendee ID input from a string to an integer using the int function, and storing the converted value back in the variable attendee_two for use in subsequent database queries to add a connection between two attendees based on the IDs entered by the user
+
+        if attendee_one == attendee_two: # Checking if the first attendee ID is the same as the second attendee ID, which would indicate that the user is trying to add a connection between the same attendee, which is not allowed in this context
+            messagebox.showerror("Error", "*** ERROR ***\nAn attendee cannot connect to him/herself") # Displaying an error message box to the user if they are trying to add a connection between the same attendee, with the title "Error" and the message "An attendee cannot connect to him/herself"
+            return
+
+        cursor = db.cursor() # Creating a cursor object from the MySQL database connection to execute SQL queries for validating the existence of the attendees in the database and checking for existing connections in the Neo4j database
+
+        cursor.execute( # Executing a SQL query to check if the first attendee ID exists in the database, by selecting the attendeeID from the attendee table where the attendeeID matches the first attendee ID entered by the user
+            "SELECT attendeeID FROM attendee WHERE attendeeID = %s",
+            (attendee_one,)
+        )
+
+        if not cursor.fetchone(): # Checking if the result of the executed query is None, which indicates that no matching attendee was found in the database for the first attendee ID entered by the user
+            messagebox.showerror("Error", f"*** ERROR ***\nOne or both attendee IDs do not exist\nAttendee {attendee_one} does not exist") # Displaying an error message box to the user if the first attendee ID does not exist in the database, with the title "Error" and a message that includes the first attendee ID entered by the user and indicates that it does not exist in the database, and returning from the function to prevent further execution of the save logic since there is no valid attendee to connect for the first attendee ID
+            return # Displaying an error message box to the user if the first attendee ID does not exist in the database, with the title "Error" and a message that includes the first attendee ID entered by the user and indicates that it does not exist in the database, and returning from the function to prevent further execution of the save logic since there is no valid attendee to connect for the first attendee ID
+
+        cursor.execute( # Executing a SQL query to check if the second attendee ID exists in the database, by selecting the attendeeID from the attendee table where the attendeeID matches the second attendee ID entered by the user
+            "SELECT attendeeID FROM attendee WHERE attendeeID = %s",
+            (attendee_two,)
+        )
+
+        if not cursor.fetchone(): # Checking if the result of the executed query is None, which indicates that no matching attendee was found in the database for the second attendee ID entered by the user
+            messagebox.showerror("Error", f"*** ERROR ***\nOne or both attendee IDs do not exist\nAttendee {attendee_two} does not exist") # Displaying an error message box to the user if the second attendee ID does not exist in the database, with the title "Error" and a message that includes the second attendee ID entered by the user and indicates that it does not exist in the database, and returning from the function to prevent further execution of the save logic since there is no valid attendee to connect for the second attendee ID
+            return # Displaying an error message box to the user if the second attendee ID does not exist in the database, with the title "Error" and a message that includes the second attendee ID entered by the user and indicates that it does not exist in the database, and returning from the function to prevent further execution of the save logic since there is no valid attendee to connect for the second attendee ID
+
+        with driver.session(database=cfg.NEO4J_DATABASE) as session: # Creating a session with the Neo4j database using the driver instance to execute queries for checking existing connections and creating a new connection between the two attendees based on the IDs entered by the user in the save_connection function for adding a connection between two attendees
+            check_query = """
+            MATCH (a:Attendee {AttendeeID: $id1})-[r:CONNECTED_TO]-(b:Attendee {AttendeeID: $id2})
+            RETURN r
+            """
+
+            existing_connection = session.run( # Running the specified Cypher query in the Neo4j database using the session's run method, passing in the query string and a parameter dictionary containing the first attendee ID (id1) and second attendee ID (id2) to check for existing connections between these two attendees in the Neo4j database, and storing the result in the variable existing_connection for further processing to determine if a connection already exists between the two attendees before attempting to create a new connection
+                check_query, 
+                id1=attendee_one,
+                id2=attendee_two
+            ).single() # Using the single method to retrieve a single record from the results of the Neo4j query, which will return a record if an existing connection is found between the two attendees, or None if no existing connection exists in the Neo4j database for the specified attendee IDs entered by the user in the save_connection function for adding a connection between two attendees
+
+            if existing_connection: # Checking if the existing_connection variable is not None, which indicates that a record was returned from the Neo4j query, meaning that an existing connection already exists between the two attendees in the Neo4j database for the specified attendee IDs entered by the user in the save_connection function for adding a connection between two attendees
+                messagebox.showerror("Error", f"*** ERROR ***\nThese attendees are already connected") # Displaying an error message box to the user if an existing connection already exists between the two attendees in the Neo4j database, with the title "Error" and the message "These attendees are already connected", and returning from the function to prevent further execution of the save logic since a connection already exists between the two attendees for the specified attendee IDs entered by the user in the save_connection function for adding a connection between two attendees
+                return # Displaying an error message box to the user if an existing connection already exists between the two attendees in the Neo4j database, with the title "Error" and the message "These attendees are already connected", and returning from the function to prevent further execution of the save logic since a connection already exists between the two attendees for the specified attendee IDs entered by the user in the save_connection function for adding a connection between two attendees
+
+            create_query = """
+            MERGE (a:Attendee {AttendeeID: $id1})
+            MERGE (b:Attendee {AttendeeID: $id2})
+            MERGE (a)-[:CONNECTED_TO]-(b)
+            """
+
+            session.run( # Running the specified Cypher query in the Neo4j database using the session's run method, passing in the query string and a parameter dictionary containing the first attendee ID (id1) and second attendee ID (id2) to create a new connection between these two attendees in the Neo4j database if no existing connection already exists, using the MERGE clause to ensure that nodes for both attendees are created if they do not already exist, and that a connection is created between them if it does not already exist, effectively adding a new connection between the two attendees based on the IDs entered by the user in the save_connection function for adding a connection between two attendees
+                create_query,
+                id1=attendee_one,
+                id2=attendee_two
+            )
+
+        messagebox.showinfo("Success", f"Attendee {attendee_one} is now connected to Attendee {attendee_two}") # Displaying an information message box to the user after successfully adding a new connection between the two attendees in the Neo4j database, with the title "Success" and the message "Attendee connection successfully added" to inform the user that the operation was completed successfully, and then clearing the entry fields for the attendee IDs to allow for adding another connection if desired
+
+        entry_one.delete(0, tk.END) # Clearing the entry field for the first attendee ID by deleting the text from index 0 to the end of the field using the delete method, allowing the user to enter a new attendee ID for adding another connection if desired after successfully adding a connection between two attendees in the Neo4j database
+        entry_two.delete(0, tk.END) # Clearing the entry field for the second attendee ID by deleting the text from index 0 to the end of the field using the delete method, allowing the user to enter a new attendee ID for adding another connection if desired after successfully adding a connection between two attendees in the Neo4j database
+
+    tk.Button(win, text="Add Connection", command=save_connection).pack(pady=15) # Creating a Button widget in the new window to allow the user to save the connection between the two attendees, with the text "Add Connection" and the command set to the save_connection function defined earlier, and packing it into the window with a vertical padding of 15 pixels to provide spacing betweenthe entry fields andthe button for adding a connection between two attendees
 
 
 # OPTION 6: View Rooms
