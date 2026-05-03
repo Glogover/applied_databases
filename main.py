@@ -29,6 +29,8 @@ import networkx as nx # Importing the networkx module to create and manipulate c
 import matplotlib.pyplot as plt # Importing the pyplot module from matplotlib to create visualizations
 # Sourced from: https://www.w3schools.com/python/matplotlib_pyplot.asp
 
+import re # Importing the re module to use regular expressions for validating user input
+# Sourced from: https://docs.python.org/3/library/re.html
 
 
 # ---DATABASE CONNECTIONS---
@@ -68,13 +70,24 @@ def show_table(columns, data, title="Results"): # Defining a function to display
     scrollbar.pack(side="right", fill="y") # Packing the scrollbar into the frame, aligning it to the right side and allowing it to fill the vertical space of the frame
 
     def export_csv(): # Defining a function to export the displayed data to a CSV file when the user clicks the "Export to CSV" button
+        
         if not data: # Checking if there is no data to export (i.e., if the data list is empty)
             messagebox.showerror("Error", "No data to export") # Displaying an error message box to the user if there is no data to export, with the title "Error" and the message "No data to export"
             return # Returning from the function if there is no data to export, preventing further execution of the export logic
 
+        # Sanitize title for file name
+        safe_title = re.sub(r"[^A-Za-z0-9_-]+", "_", title).strip("_") # Sanitizing the title to create a safe file name for the CSV export by replacing any characters that are not letters, digits, underscores, or hyphens with underscores, and stripping any leading or trailing underscores from the resulting string, and storing it in the variable safe_title for use as the default file name in the save dialog
+
+        if not safe_title: # Checking if the sanitized title is empty (i.e., if the original title contained only invalid characters that were replaced with underscores, resulting in an empty string)
+           safe_title = "results" # Setting a default file name of "results" if the sanitized title is empty, to ensure that there is a valid default file name for the CSV export even if the original title contained only invalid characters
+
+        # Avoid duplicate .csv
+        if safe_title.lower().endswith(".csv"): # Checking if the sanitized title already ends with the ".csv" extension (case-insensitive) to avoid having a duplicate ".csv" extension in the default file name for the CSV export
+           safe_title = safe_title[:-4] # Removing the last 4 characters (i.e., the ".csv" extension) from the sanitized title if it already ends with ".csv", to ensure that the default file name for the CSV export does not have a duplicate ".csv" extension when the user saves the file
+
         file_path = filedialog.asksaveasfilename( # Opening a file dialog to allow the user to choose the location and name for the CSV file to be saved, with the following parameters:
             defaultextension=".csv", # Setting the default file extension to ".csv" to ensure that the saved file is recognized as a CSV file
-            initialfile=title.replace(" ", "_") + ".csv", # Setting the initial file name in the save dialog to the title of the table with spaces replaced by underscores, followed by the ".csv" extension (e.g., "Results.csv")
+            initialfile=f"{safe_title}.csv", # Setting the initial file name in the save dialog to a sanitized version of the title (safe_title) with a .csv extension, to provide a default name for the exported CSV file
             filetypes=[("CSV files", "*.csv")], # Restricting the file types that can be selected in the save dialog to only CSV files, with the description "CSV files" and the file extension filter "*.csv"
             title="Save CSV File" # Setting the title of the file dialog to "Save CSV File" to indicate to the user that they are saving a CSV file
         )
@@ -271,8 +284,152 @@ def add_attendee(): # Defining a function to allow the user to add a new attende
 
 # OPTION 4: View Connected Attendees
 
-def connected_attendees():
-    print("Not implemented yet")
+def connected_attendees(): # Defining a function to allow the user to view attendees who are connected (e.g., through shared sessions or companies)
+
+    win = tk.Toplevel(root) # Creating a new top-level window (a child window of the main application window) to display the form for viewing connected attendees
+    win.title("View Connected Attendees") # Setting the title of the new window to "View Connected Attendees" to indicate the purpose of the window to the user
+    win.geometry("350x180") # Setting the size of the new window to 350 pixels in width and 180 pixels in height, providing enough space for the input field and buttons while keeping it compact
+
+    tk.Label(win, text="Enter Attendee ID:").pack(pady=5) # Creating a Label widget in the new window to prompt the user to enter an attendee ID for searching connected attendees, with the specified text and packing it into the window with a vertical padding of 5 pixels
+    entry = tk.Entry(win, width=30) # Creating an Entry widget in the new window to allow the user to input an attendee ID for searching connected attendees, with a width of 30 characters for better visibility and user experience
+    entry.pack(pady=5) # Packing the Entry widget into the new window with a vertical padding of 5 pixels to provide spacing between the label and the entry field
+
+    def search(): # Defining a function to perform the search for connected attendees based on the attendee ID entered by the user, which includes validating the input, retrieving the attendee's name, and querying the Neo4j database for connected attendees, and then displaying the results in a table format
+        attendee_id = entry.get() # Retrieving the attendee ID entered by the user from the entry field using the get method and storing it in the variable attendee_id for further processing in the search logic to find connected attendees based on this ID
+
+        if not attendee_id.isdigit(): # Validating the attendee ID input to ensure it is a valid integer, by checking if the value entered by the user in the attendee ID field consists of digits only (i.e., is a positive integer)
+            messagebox.showerror("Error", "*** ERROR ***\nInvalid attendee ID") # Displaying an error message box to the user if the attendee ID input is invalid (i.e., not a valid integer), with the title "Error" and the message "Invalid attendee ID"
+            return # Returning from the function if the attendee ID input is invalid, preventing further execution of the search logic and avoiding errors when trying to query the database with an invalid attendee ID
+
+        attendee_id = int(attendee_id) # Converting the validated attendee ID input from a string to an integer using the int function, and storing the converted value back in the variable attendee_id for use in subsequent database queries to find connected attendees based on this ID
+
+        cursor = db.cursor() # Creating a cursor object from the mySQL database connection to execute SQL queries for retrieving the attendee's name and querying the Neo4j database for connected attendees based on the specified attendee ID entered by the user in the search function for connected attendees
+
+        cursor.execute( # Executing a SQL query to retrieve the name of the attendee with the specified attendee ID from the database, by selecting the attendeeName from the attendee table where the attendeeID matches the user input attendee_id
+            "SELECT attendeeName FROM attendee WHERE attendeeID = %s",
+            (attendee_id,)
+        )
+
+        attendee = cursor.fetchone() # Fetching the result of the executed query using the cursor's fetchone method, which returns a single tuple containing the attendee name if a matching record is found, or None if no matching record exists in the database for the specified attendee ID entered by the user in the search function for connected attendees
+
+        if not attendee: # Checking if the attendee variable is None, which indicates that no matching attendee was found in the database for the specified attendee ID entered by the user
+            messagebox.showerror("Error", "*** ERROR ***\nAttendee does not exist") # Displaying an error message box to the user if the attendee does not exist in the database, with the title "Error" and the message "Attendee does not exist", and returning from the function to prevent further execution of the search logic since there is no valid attendee to search for connected attendees
+            return# Returning from the function if the attendee does not exist in the database, preventing further execution of the search logic since there is no valid attendee to search for connected attendees
+
+        connected_data = [] # Initializing an empty list to store the connected attendees' data, which will be populated with tuples containing the connected attendee ID and name for each connected attendee found in the Neo4j database based on the specified attendee ID entered by the user in the search function for connected attendees
+
+        with driver.session(database="appdbprojNeo4j") as session: # Creating a session with the Neo4j database using the driver instance, and specifying the database name "appdbprojNeo4j" to execute queries for finding connected attendees based on the specified attendee ID entered by the user in the search function for connected attendees
+            query = """ 
+            MATCH (a:Attendee {AttendeeID: $id})-[r:CONNECTED_TO]-(b:Attendee)
+            RETURN b.AttendeeID AS connectedID
+            """
+
+            results = session.run(query, id=attendee_id) # Running the specified Cypher query in the Neo4j database using the session's run method, passing in the query string and a parameter dictionary containing the attendee ID (id) to find connected attendees based on this ID, and storing the results in the variable results for further processing
+
+            for record in results: # Iterating over each record in the results returned from the Neo4j query to extract the connected attendee ID and retrieve the corresponding attendee name from the MySQL database, and then appending the connected attendee ID and name as a tuple to the connected_data list for later display in a table format
+                connected_id = record["connectedID"]
+
+                cursor.execute( # Executing a SQL query to retrieve the name of the connected attendee with the specified connected attendee ID from the database, by selecting the attendeeName from the attendee table where the attendeeID matches the connected_id retrieved from the Neo4j query results
+                    "SELECT attendeeName FROM attendee WHERE attendeeID = %s",
+                    (connected_id,)
+                )
+
+                connected_name = cursor.fetchone() # Fetching the result of the executed query using the cursor's fetchone method, which returns a single tuple containing the connected attendee name if a matching record is found, or None if no matching record exists in the database for the specified connected attendee ID retrieved from the Neo4j query results
+
+                if connected_name: # Checking if the connected_name variable is not None, which indicates that a matching record was found in the database for the specified connected attendee ID retrieved from the Neo4j query results
+                    connected_data.append( # Appending a tuple containing the connected attendee ID and name to the connected_data list, which will be used later to display the connected attendees in a table format, by adding a tuple with the connected_id and the first element of the connected_name tuple (which is the attendee name) to the connected_data list
+                        (connected_id, connected_name[0]) # Appending a tuple containing the connected attendee ID and name to the connected_data list, which will be used later to display the connected attendees in a table format, by adding a tuple with the connected_id and the first element of the connected_name tuple (which is the attendee name) to the connected_data list
+                    )
+
+        if not connected_data: # Checking if the connected_data list is empty, which indicates that no connected attendees were found in the Neo4j database for the specified attendee ID entered by the user
+            messagebox.showinfo("No Connections", f"Attendee Name: {attendee[0]}\nNo connections") # Displaying an information message box to the user if no connected attendees are found for the specified attendee ID, with the title "No Connections" and a message that includes the attendee name retrieved from the database and indicates that there are no connections for that attendee
+        else: # If there are connected attendees found in the Neo4j database, calling the show_table function defined earlier to display the connected attendees in a new window with a table format
+            show_table( # Calling the show_table function to display the connected attendees in a new window with a table format, passing in the column names
+                ["Connected Attendee ID", "Connected Attendee Name"],
+                connected_data,
+                f"These attendees are connected to {attendee[0]}:"
+            )
+
+    def visualize(): # Defining a function to visualize the connections of the specified attendee ID in a graph format using NetworkX and Matplotlib, which includes validating the input, retrieving the attendee's name, querying the Neo4j database for connected attendees, and then visualizing the connections in a graph format
+        attendee_id = entry.get() # Retrieving the attendee ID entered by the user from the entry field using the get method and storing it in the variable attendee_id for further processing in the visualization logic to find connected attendees based on this ID and visualize the connections in a graph format
+
+        if not attendee_id.isdigit(): # Validating the attendee ID input to ensure it is a valid integer, by checking if the value entered by the user in the attendee ID field consists of digits only (i.e., is a positive integer)
+            messagebox.showerror("Error", "*** ERROR ***\nInvalid attendee ID") # Displaying an error message box to the user if the attendee ID input is invalid (i.e., not a valid integer), with the title "Error" and the message "Invalid attendee ID"
+            return # Returning from the function if the attendee ID input is invalid, preventing further execution of the visualization logic and avoiding errors when trying to query the database with an invalid attendee ID
+
+        visualize_connections(int(attendee_id)) # Calling the visualize_connections function defined to visualize the connections of the specified attendee ID in a graph format, by passing in the validated and converted attendee ID as an integer to the function for further processing to find connected attendees and visualize the connections in a graph format using NetworkX and Matplotlib
+
+    tk.Button(win, text="Search", command=search).pack(pady=5) # Creating a Button widget in the new window to allow the user to perform the search for connected attendees, with the text "Search" and the command set to the search function defined earlier, and packing it into the window with a vertical padding of 5 pixels to provide spacing between the entry field and the button
+    tk.Button(win, text="Visualize Graph", command=visualize).pack(pady=5) # Creating a Button widget in the new window to allow the user to visualize the connections of the specified attendee ID in a graph format, with the text "Visualize Graph" and the command set to the visualize function defined earlier, and packing it into the window with a vertical padding of 5 pixels to provide spacing between the search button and the visualization button
+
+# GRAPH VISUALIZATION FUNCTION
+
+def visualize_connections(attendee_id): # Defining a function to visualize the connections of a specified attendee ID in a graph format using NetworkX and Matplotlib, which includes validating the input, retrieving the attendee's name, querying the Neo4j database for connected attendees, and then visualizing the connections in a graph format
+    cursor = db.cursor() #  Creating a cursor object from the MySQL database connection to execute SQL queries for retrieving the attendee's name and querying the Neo4j database for connected attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
+
+    cursor.execute( # Executing a SQL query to retrieve the name of the attendee with the specified attendee ID from the database, by selecting the attendeeName from the attendee table where the attendeeID matches the user input attendee_id
+        "SELECT attendeeName FROM attendee WHERE attendeeID = %s",
+        (attendee_id,)
+    )
+
+    attendee = cursor.fetchone() # Fetching the result of the executed query using the cursor's fetchone method, which returns a single tuple containing the attendee name if a matching record is found, or None if no matching record exists in the database for the specified attendee ID entered by the user in the visualization function for connected attendees
+
+    if not attendee: # Checking if the attendee variable is None, which indicates that no matching attendee was found in the database for the specified attendee ID entered by the user
+        messagebox.showerror("Error", "*** ERROR ***\nAttendee does not exist")
+        return # Displaying an error message box to the user if the attendee does not exist in the database, with the title "Error" and the message "Attendee does not exist", and returning from the function to prevent further execution of the visualization logic since there is no valid attendee to visualize connections for
+
+    attendee_name = attendee[0] # Storing the attendee name retrieved from the database in the variable attendee_name for use in the graph visualization, by accessing the first element of the attendee tuple (which is the attendee name) and assigning it to the variable attendee_name for later use in labeling the graph nodes and providing context in the visualization of connected attendees
+
+    graph = nx.Graph() # Creating an empty graph object using NetworkX to represent the connections between attendees, which will be populated with nodes and edges based on the connected attendees retrieved from the Neo4j database for the specified attendee ID entered by the user in the visualization function for connected attendees
+    graph.add_node(attendee_name) # Adding a node to the graph for the specified attendee, using the attendee name retrieved from the database as the label for the node, which will serve as the central node in the graph visualization of connected attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
+
+    found_connection = False # Initializing a boolean variable found_connection to False, which will be used to track whether any connected attendees are found in the Neo4j database for the specified attendee ID entered by the user in the visualization function for connected attendees, and will be updated to True if at least one connected attendee is found during the processing of the Neo4j query results
+
+    with driver.session(database="appdbprojNeo4j") as session: # Creating a session with the Neo4j database using the driver instance, and specifying the database name "appdbprojNeo4j" to execute queries for finding connected attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
+        query = """
+        MATCH (a:Attendee {AttendeeID: $id})-[r:CONNECTED_TO]-(b:Attendee)
+        RETURN b.AttendeeID AS connectedID
+        """
+
+        results = session.run(query, id=attendee_id) # Running the specified Cypher query in the Neo4j database using the session's run method, passing in the query string and a parameter dictionary containing the attendee ID (id) to find connected attendees based on this ID, and storing the results in the variable results for further processing to visualize the connections in a graph format using NetworkX and Matplotlib
+
+        for record in results: # Iterating over each record in the results returned from the Neo4j query to extract the connected attendee ID and retrieve the corresponding attendee name from the MySQL database, and then adding nodes and edges to the graph for each connected attendee found in the Neo4j database based on the specified attendee ID entered by the user in the visualization function for connected attendees
+            found_connection = True # Setting the found_connection variable to True if at least one connected attendee is found in the Neo4j database for the specified attendee ID entered by the user, indicating that there are connections to visualize in the graph
+            connected_id = record["connectedID"] # Extracting the connected attendee ID from the current record in the results returned from the Neo4j query, by accessing the "connectedID" field in the record and storing it in the variable connected_id for use in retrieving the connected attendee's name from the MySQL database and adding nodes and edges to the graph for visualization
+
+            cursor.execute( # Executing a SQL query to retrieve the name of the connected attendee with the specified connected attendee ID from the database, by selecting the attendeeName from the attendee table where the attendeeID matches the connected_id retrieved from the Neo4j query results
+                "SELECT attendeeName FROM attendee WHERE attendeeID = %s", # Executing the SQL query to retrieve the name of the connected attendee from the database, by selecting the attendeeName from the attendee table where the attendeeID matches the connected_id retrieved from the Neo4j query results
+                (connected_id,)
+            )
+
+            connected_attendee = cursor.fetchone() # Fetching the result of the executed query using the cursor's fetchone method, which returns a single tuple containing the connected attendee name if a matching record is found, or None if no matching record exists in the database for the specified connected attendee ID retrieved from the Neo4j query results
+
+            if connected_attendee: # Checking if the connected_attendee variable is not None, which indicates that a matching record was found in the database for the specified connected attendee ID retrieved from the Neo4j query results
+                connected_name = connected_attendee[0] # Storing the connected attendee name retrieved from the database in the variable connected_name for use in the graph visualization, by accessing the first element of the connected_attendee tuple (which is the connected attendee name) and assigning it to the variable connected_name for later use in labeling the graph nodes and providing context in the visualization of connected attendees
+                graph.add_node(connected_name) # Adding a node to the graph for the connected attendee, using the connected attendee name retrieved from the database as the label for the node, which will be connected to the central node representing the specified attendee in the graph visualization of connected attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
+                graph.add_edge(attendee_name, connected_name) # Adding an edge to the graph between the central node representing the specified attendee and the node representing the connected attendee, using the attendee name and connected attendee name as the labels for the nodes, which will visually represent the connection between the specified attendee and the connected attendees in the graph visualization based on the specified attendee ID entered by the user in the visualization function for connected attendees
+
+    if not found_connection: # Checking if the found_connection variable is still False after processing the Neo4j query results, which indicates that no connected attendees were found in the Neo4j database for the specified attendee ID entered by the user, and therefore there are no connections to visualize in the graph
+        messagebox.showinfo("No Connections", f"Attendee Name:{attendee_name}\nNo connections") # Displaying an information message box to the user if no connected attendees are found for the specified attendee ID, with the title "No Connections" and a message that includes the attendee name retrieved from the database and indicates that there are no connections for that attendee, and returning from the function to prevent further execution of the graph visualization logic since there are no connections to visualize
+        return # Returning from the function if no connected attendees are found in the Neo4j database for the specified attendee ID entered by the user, preventing further execution of the graph visualization logic since there are no connections to visualize
+
+    plt.figure(figsize=(8, 6)) # Creating a new figure for the graph visualization using Matplotlib, with a specified size of 8 inches in width and 6 inches in height to provide enough space for visualizing the connections between attendees in a clear and visually appealing manner based on the specified attendee ID entered by the user in the visualization function for connected attendees
+    position = nx.spring_layout(graph) # Generating a layout for the graph visualization using NetworkX's spring_layout function, which positions the nodes in a way that visually represents the connections between them in a clear and aesthetically pleasing manner, based on the structure of the graph created from the connected attendees retrieved from the Neo4j database for the specified attendee ID entered by the user in the visualization function for connected attendees
+
+    nx.draw( # Drawing the graph visualization using NetworkX's draw function, which takes the graph object, the generated layout for positioning the nodes, and various styling options for the nodes, edges, and labels to create a visually appealing representation of the connections between attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
+        graph,
+        position,
+        with_labels=True,
+        node_size=3000,
+        node_color="lightblue",
+        edge_color="gray",
+        font_size=10,
+        font_weight="bold"
+    )
+
+    plt.title(f"Neo4j Connections for {attendee_name}") # Setting the title of the graph visualization to include the name of the attendee for whom connections are being displayed
+    plt.show() # Displaying the graph visualization using Matplotlib's show function, which renders the graph in a new window for the user to view the connections between attendees based on the specified attendee ID entered by the user in the visualization function for connected attendees
+
 
 
 # OPTION 5: Add Attendee Connection
