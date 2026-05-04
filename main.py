@@ -35,12 +35,26 @@ import re # Importing the re module to use regular expressions for validating us
 
 # ---DATABASE CONNECTIONS---
 
-db = mysql.connector.connect(**cfg.mysql) # Unpacking the mysql dictionary from dbconfig.py to create a connection
+try: # Attempting to establish a connection to the MySQL database using the mysql.connector module, with the connection parameters specified in the cfg.mysql dictionary imported from the dbconfig module, and printing messages to indicate the connection status
+    print("Connecting to MySQL...") # Printing a message to the console to indicate that the application is attempting to connect to the MySQL database, providing feedback to the user about the connection status
+    db = mysql.connector.connect(**cfg.mysql) # Establishing a connection to the MySQL database using the connect method from the mysql.connector module, passing in the connection parameters from the cfg.mysql dictionary (which includes host, user, password, and database) as keyword arguments to establish the connection
+    print("Connected to MySQL") # Printing a message to the console to indicate that the connection to the MySQL database was successful, providing feedback to the user about the connection status
+except mysql.connector.Error as err: # Catching any exceptions that occur during the attempt to connect to the MySQL database, specifically catching mysql.connector.Error exceptions and storing the exception object in the variable err to display a more specific error message to the user
+    print("MySQL ERROR:", err) # Printing an error message to the console if an exception occurs during the connection attempt, with the title "MySQL ERROR:" followed by the string representation of the exception (err) to provide details about the error that occurred during the connection process
+    input("Press Enter to exit...") # Prompting the user to press Enter to exit the application after an error occurs during the connection attempt, allowing the user to read the error message before closing the application
+    exit() # Exiting the application if an error occurs during the connection attempt to the MySQL database, preventing further execution of the application since a database connection is essential for its functionality
 
-driver = GraphDatabase.driver(
-    cfg.NEO4J_URI,
-    auth=(cfg.NEO4J_USER, cfg.NEO4J_PASSWORD)
-) # Creating a driver instance to connect to the Neo4j database using the URI and authentication credentials from dbconfig.py
+try: # Attempting to establish a connection to the Neo4j database using the GraphDatabase.driver method from the neo4j module, with the connection parameters specified in the cfg.NEO4J_URI, cfg.NEO4J_USER, and cfg.NEO4J_PASSWORD variables imported from the dbconfig module, and printing messages to indicate the connection status
+    print("Connecting to Neo4j...") # Printing a message to the console to indicate that the application is attempting to connect to the Neo4j database, providing feedback to the user about the connection status
+    driver = GraphDatabase.driver( # Establishing a connection to the Neo4j database using the driver method from the GraphDatabase class in the neo4j module, passing in the URI, username, and password from the cfg variables as parameters to establish the connection
+        cfg.NEO4J_URI,
+        auth=(cfg.NEO4J_USER, cfg.NEO4J_PASSWORD)
+    )
+    print("Connected to Neo4j") # Printing a message to the console to indicate that the connection to the Neo4j database was successful, providing feedback to the user about the connection status
+except Exception as e: # Catching any exceptions that occur during the attempt to connect to the Neo4j database, specifically catching all exceptions and storing the exception object in the variable e to display a more specific error message to the user
+    print("Neo4j ERROR:", e) # Printing an error message to the console if an exception occurs during the connection attempt, with the title "Neo4j ERROR:" followed by the string representation of the exception (e) to provide details about the error that occurred during the connection process
+    input("Press Enter to exit...") # Prompting the user to press Enter to exit the application after an error occurs during the connection attempt, allowing the user to read the error message before closing the application
+    exit() # Exiting the application if an error occurs during the connection attempt to the Neo4j database, preventing further execution of the application since a database connection is essential for its functionality
 
 
 
