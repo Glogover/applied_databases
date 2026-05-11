@@ -1,7 +1,8 @@
 # main.py
-# Description: TBD
-
+"""This is a desktop-based Python application developed for the Applied Databases module.
+The application integrates both MySQL and Neo4j databases and provides a graphical user interface (GUI) using Tkinter."""
 # Author: Marcin Kaminski
+
 
 # ---IMPORTS---
 
@@ -651,10 +652,6 @@ root.protocol("WM_DELETE_WINDOW", close_application) # Setting the protocol for 
 root.mainloop() # Starting the main event loop of the application, which waits for user interactions and updates the GUI accordingly
  
 
-
-
-
-
 #if __name__ == "__main__": # Checking if the script is being run directly (as the main program) rather than imported as a module
    #print("To be continued...")
    #speakers_sessions() # Calling the speakers_sessions function to execute the logic for viewing speakers and sessions (to be defined later)
@@ -663,3 +660,6 @@ root.mainloop() # Starting the main event loop of the application, which waits f
    #connected_attendees() # Calling the connected_attendees function to execute the logic for viewing connected attendees (to be defined later)
    #add_connection() # Calling the add_connection function to execute the logic for adding a connection between attendees (to be defined later)
    #view_rooms() # Calling the view_rooms function to execute the logic for viewing rooms (to be defined later)
+
+
+# END
