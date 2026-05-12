@@ -1,5 +1,7 @@
 # Applied Databases Project
 
+*Please note that both the MySQL server and the Neo4j server must be running in order to run the application (main.py).*
+
 ## Overview
 
 This project is a desktop-based Python application developed for the **Applied Databases** module.  
